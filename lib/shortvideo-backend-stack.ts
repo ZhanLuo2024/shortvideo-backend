@@ -1,16 +1,29 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
+import { createVideoTable } from '../resources/tables/video-table';
+import { createCommentTable } from '../resources/tables/comment-table';
+import { setupGetVideosLambda } from '../resources/lambdas/get-videos';
+// import { createCognitoResources } from '../resources/auth/cognito';
+import { setupApiGateway } from '../resources/api/api-gateway';
+import { setupVideoBucket } from '../resources/s3/video-assets';
+
 
 export class ShortvideoBackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
+    // create DynamoDB tables
+    const videoTable = createVideoTable(this);
+    const commentTable = createCommentTable(this);
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'ShortvideoBackendQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+    // create s3 bucket
+    const videoBucket = setupVideoBucket(this);
+
+    // create Lambda
+    const getVideosLambda = setupGetVideosLambda(this, videoTable);
+
+    // create API Gateway and binding Lambda
+    const api = setupApiGateway(this, getVideosLambda);
+
   }
 }
