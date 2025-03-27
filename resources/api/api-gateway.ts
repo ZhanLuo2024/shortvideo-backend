@@ -1,8 +1,16 @@
 import { Construct } from 'constructs';
-import { RestApi, LambdaIntegration, Cors } from 'aws-cdk-lib/aws-apigateway';
+import { RestApi, LambdaIntegration, Cors, MethodOptions } from 'aws-cdk-lib/aws-apigateway';
 import { Function as LambdaFunction } from 'aws-cdk-lib/aws-lambda';
 
-export function setupApiGateway(scope: Construct, getVideosLambda: LambdaFunction): RestApi {
+interface LambdaRoute {
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    lambda: LambdaFunction;
+}
+
+export function setupApiGateway(
+    scope: Construct,
+    routes: Record<string, LambdaRoute>
+    ): RestApi {
     const api = new RestApi(scope, 'ShortVideoApi', {
         restApiName: 'ShortVideoApi',
         defaultCorsPreflightOptions: {
@@ -11,8 +19,11 @@ export function setupApiGateway(scope: Construct, getVideosLambda: LambdaFunctio
         },
     });
 
-    const videos = api.root.addResource('videos');
-    videos.addMethod('GET', new LambdaIntegration(getVideosLambda));
+    // auto register all lambda functions
+    for (const [path, route] of Object.entries(routes)) {
+        const resource = api.root.addResource(path);
+        resource.addMethod(route.method, new LambdaIntegration(route.lambda));
+    }
 
     return api;
 }

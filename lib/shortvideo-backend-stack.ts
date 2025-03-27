@@ -3,6 +3,7 @@ import { Construct } from 'constructs';
 import { createVideoTable } from '../resources/tables/video-table';
 import { createCommentTable } from '../resources/tables/comment-table';
 import { setupGetVideosLambda } from '../resources/lambdas/get-videos';
+import { setupPostCommentLambda } from "../resources/lambdas/post-comment";
 // import { createCognitoResources } from '../resources/auth/cognito';
 import { setupApiGateway } from '../resources/api/api-gateway';
 import { setupVideoBucket } from '../resources/s3/video-assets';
@@ -21,9 +22,19 @@ export class ShortvideoBackendStack extends cdk.Stack {
 
     // create Lambda
     const getVideosLambda = setupGetVideosLambda(this, videoTable);
+    const postCommentLambda = setupPostCommentLambda(this, commentTable);
 
     // create API Gateway and binding Lambda
-    const api = setupApiGateway(this, getVideosLambda);
+    const api = setupApiGateway(this, {
+      videos: {
+        method: 'GET',
+        lambda: getVideosLambda,
+      },
+      comments: {
+        method: 'POST',
+        lambda: postCommentLambda,
+      },
+    });
 
   }
 }
