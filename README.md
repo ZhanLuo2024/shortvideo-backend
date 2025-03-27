@@ -33,10 +33,9 @@ This is the backend for a mobile short video application built using AWS serverl
     - Stores uploaded video files and (optionally) thumbnails
     - Videos are pre-uploaded; API stores metadata with the file URL
 
-6. **AWS Cognito** *(setup only)*
-    - UserPool and Client created via CDK
-    - Not fully integrated for token-based validation (optional extension)
-
+6. **AWS Cognito**
+    - Manages user identity and authentication
+    - Deployed via AWS CDK with email + password login support
 
 
 ## 📁 Features
