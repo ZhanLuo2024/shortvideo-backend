@@ -1,11 +1,14 @@
 import { Construct } from 'constructs';
-import { RestApi, LambdaIntegration, Cors, MethodOptions } from 'aws-cdk-lib/aws-apigateway';
+import { RestApi, LambdaIntegration, Cors } from 'aws-cdk-lib/aws-apigateway';
 import { Function as LambdaFunction } from 'aws-cdk-lib/aws-lambda';
 
-interface LambdaRoute {
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
-    lambda: LambdaFunction;
-}
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+export type LambdaRoute = {
+    [method in HttpMethod]?: {
+        lambda: LambdaFunction;
+    };
+};
 
 export function setupApiGateway(
     scope: Construct,
@@ -19,10 +22,21 @@ export function setupApiGateway(
         },
     });
 
-    // auto register all lambda functions
-    for (const [path, route] of Object.entries(routes)) {
+    /**
+     * auto register all lambda functions
+     *
+     * O(n²)
+     */
+
+    for (const [path, routeMethods] of Object.entries(routes)) {
         const resource = api.root.addResource(path);
-        resource.addMethod(route.method, new LambdaIntegration(route.lambda));
+
+        for (const method of Object.keys(routeMethods) as HttpMethod[]) {
+            const lambda = routeMethods[method]?.lambda;
+            if (lambda) {
+                resource.addMethod(method, new LambdaIntegration(lambda));
+            }
+        }
     }
 
     return api;
