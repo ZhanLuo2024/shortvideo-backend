@@ -11,6 +11,8 @@ import { setupVideoBucket } from '../resources/s3/video-assets';
 import { createUserTable } from '../resources/tables/user-table';
 import {createPostLoginLambda} from "../resources/lambdas/post-login";
 import { setupPostLogoutLambda } from "../resources/lambdas/post-logout"
+import { setupPostVideoLambda } from "../resources/lambdas/post-video"
+import { setupPostLikeLambda } from "../resources/lambdas/post-like"
 
 
 export class ShortvideoBackendStack extends cdk.Stack {
@@ -31,11 +33,15 @@ export class ShortvideoBackendStack extends cdk.Stack {
     const getCommentsLambda = setupGetCommentsLambda(this, commentTable);
     const postLoginLambda = createPostLoginLambda(this, userTable);
     const postLogoutLambda = setupPostLogoutLambda(this, userTable);
+    const postVideoLambda = setupPostVideoLambda(this, videoTable, videoBucket);
+    const postLikesLambda = setupPostLikeLambda(this, videoTable);
+
 
     // create API Gateway and binding Lambda
     const api = setupApiGateway(this, {
       videos: {
         GET: { lambda: getVideosLambda },
+        POST: { lambda: postVideoLambda },
       },
       comments: {
         POST: { lambda: postCommentLambda },
@@ -47,6 +53,9 @@ export class ShortvideoBackendStack extends cdk.Stack {
       logout: {
         POST: { lambda: postLogoutLambda },
       },
+      likes: {
+        POST: { lambda: postLikesLambda },
+      }
 
     });
 
