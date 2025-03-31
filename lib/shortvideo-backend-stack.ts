@@ -8,6 +8,9 @@ import { setupGetCommentsLambda } from "../resources/lambdas/get-comments"
 // import { createCognitoResources } from '../resources/auth/cognito';
 import { setupApiGateway } from '../resources/api/api-gateway';
 import { setupVideoBucket } from '../resources/s3/video-assets';
+import { createUserTable } from '../resources/tables/user-table';
+import {createPostLoginLambda} from "../resources/lambdas/post-login";
+import { setupPostLogoutLambda } from "../resources/lambdas/post-logout"
 
 
 export class ShortvideoBackendStack extends cdk.Stack {
@@ -17,6 +20,7 @@ export class ShortvideoBackendStack extends cdk.Stack {
     // create DynamoDB tables
     const videoTable = createVideoTable(this);
     const commentTable = createCommentTable(this);
+    const userTable = createUserTable(this);
 
     // create s3 bucket
     const videoBucket = setupVideoBucket(this);
@@ -25,6 +29,8 @@ export class ShortvideoBackendStack extends cdk.Stack {
     const getVideosLambda = setupGetVideosLambda(this, videoTable);
     const postCommentLambda = setupPostCommentLambda(this, commentTable);
     const getCommentsLambda = setupGetCommentsLambda(this, commentTable);
+    const postLoginLambda = createPostLoginLambda(this, userTable);
+    const postLogoutLambda = setupPostLogoutLambda(this, userTable);
 
     // create API Gateway and binding Lambda
     const api = setupApiGateway(this, {
@@ -34,6 +40,12 @@ export class ShortvideoBackendStack extends cdk.Stack {
       comments: {
         POST: { lambda: postCommentLambda },
         GET: { lambda: getCommentsLambda },
+      },
+      login: {
+        POST: { lambda: postLoginLambda },
+      },
+      logout: {
+        POST: { lambda: postLogoutLambda },
       },
 
     });
