@@ -4,13 +4,25 @@ This is the backend for a mobile short video application built using AWS serverl
 
 ## 🛠️ Tech Stack
 
-- **AWS CDK** (TypeScript)
-- **Amazon DynamoDB** – video and comment storage
-- **Amazon S3** – video and thumbnail file storage
-- **API Gateway + Lambda** – RESTful APIs
-- **Optional Cognito** – User authentication (CDK deployed, not integrated)
+- **AWS CDK (TypeScript)** – Infrastructure as Code
+- **Amazon API Gateway + Lambda** – REST API
+- **Amazon DynamoDB** – Video, comment, and user data
+- **Amazon S3** – Stores video files
+- **Amazon Cognito** – User authentication (email + password)
 
 ## 🏗️ Architecture Overview
+
+```
+Mobile App
+   │
+   ▼
+API Gateway
+   │
+   ▼
+Lambda Functions
+   ├── DynamoDB (video_table, comment_table, user_table)
+   └── S3 (videos)
+```
 
 1. **Mobile App (Frontend)**
     - Sends HTTP requests to backend APIs
@@ -33,38 +45,37 @@ This is the backend for a mobile short video application built using AWS serverl
     - Stores uploaded video files and (optionally) thumbnails
     - Videos are pre-uploaded; API stores metadata with the file URL
 
-6. **AWS Cognito**
-    - Manages user identity and authentication
-    - Deployed via AWS CDK with email + password login support
-
 
 ## 📁 Features
 
-- View short videos
-- Add and view comments for videos
-- Like videos (simple count only)
-- Simulated login with backend state (`isLogin = true`)
-- Upload video metadata (video manually uploaded to S3)
-- Discovery page uses same API as homepage
+- View videos on the homepage & discovery tab
+- Add and view comments for each video
+- Like videos (count-only, no user binding)
+- Email-based login/logout via Cognito
+- Upload video (multipart form upload to S3)
 
 ## 🔐 Authentication
 
-Authentication is handled via AWS Cognito, with user login status stored in DynamoDB for integration with application features. The Cognito setup is implemented using AWS CDK and can be extended to support full token-based authorization.
+- Cognito User Pool is deployed via CDK (`cognito-user-pool.ts`)
+- Upon login, the system updates `user_table` with `isLogin = true` to track session state
+- Commenting and liking actions require a valid login  
+
 
 ## 🔗 API Endpoints
 
-| Method | Endpoint                | Description                      |
-|--------|-------------------------|----------------------------------|
-| GET    | `/videos`               | Get list of all videos           |
-| POST   | `/videos`               | Upload video metadata            |
-| POST   | `/comments`             | Add comment to a video           |
-| GET    | `/comments?video_id=xx`| Get comments for a specific video|
-| POST   | `/login`                | Simulate login (`isLogin = true`)|
-| PATCH  | `/videos/{id}/like`     | Like a video (+1 like count)     |
+| Method | Endpoint                   | Description               |
+|--------|----------------------------|---------------------------|
+| GET    | `/videos`                  | Get list of all videos    |
+| POST   | `/videos`                  | Upload a new video (multipart) |
+| POST   | `/comments`                | Add comment to a video    |
+| GET    | `/comments?video_id=xx`   | Get comments for a specific video |
+| POST   | `/login`                   | Login (status saved)      |
+| POST   | `/logout`                  | Logout (clear login status) |
+| POST   | `/likes`                   | Like a video (+1 like count) |
 
 ## 🧳 Deployment
 
-Deployed via AWS CDK. Simply run:
+Deploy the entire backend stack with:
 
 ```bash
 cdk deploy
