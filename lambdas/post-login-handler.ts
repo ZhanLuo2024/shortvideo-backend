@@ -1,49 +1,53 @@
+// /lambdas/post-login-handler.ts
 import { APIGatewayProxyHandlerV2 } from 'aws-lambda';
-import { DynamoDBClient, UpdateItemCommand, GetItemCommand } from '@aws-sdk/client-dynamodb';
-import { unmarshall } from '@aws-sdk/util-dynamodb';
+import {
+    CognitoIdentityProviderClient,
+    AdminInitiateAuthCommand,
+} from '@aws-sdk/client-cognito-identity-provider';
 
-const client = new DynamoDBClient({});
-const USER_TABLE_NAME = process.env.USER_TABLE_NAME!;
-const ALLOWED_EMAIL = 'demo@example.com';
+const client = new CognitoIdentityProviderClient({});
+const USER_POOL_ID = process.env.USER_POOL_ID!;
+const CLIENT_ID = process.env.CLIENT_ID!;
 
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     try {
         const body = JSON.parse(event.body || '{}');
-        const email = body.email;
+        const { email, password } = body;
 
-        if (!email || email !== ALLOWED_EMAIL) {
-            return { statusCode: 401, body: JSON.stringify({ message: 'Unauthorized user' }) };
-        }
-
-        // Check if the user already exists
-        const existing = await client.send(new GetItemCommand({
-            TableName: USER_TABLE_NAME,
-            Key: { user_id: { S: email } }
-        }));
-
-        if (!existing.Item) {
+        if (!email || !password) {
             return {
-                statusCode: 404,
-                body: JSON.stringify({ message: 'User not found in system' })
+                statusCode: 400,
+                body: JSON.stringify({ message: 'Missing email or password' }),
             };
         }
 
-        // status update
-        await client.send(new UpdateItemCommand({
-            TableName: USER_TABLE_NAME,
-            Key: { user_id: { S: email } },
-            UpdateExpression: 'SET isLogin = :val',
-            ExpressionAttributeValues: {
-                ':val': { BOOL: true }
-            }
-        }));
+        const command = new AdminInitiateAuthCommand({
+            AuthFlow: 'ADMIN_USER_PASSWORD_AUTH',
+            UserPoolId: USER_POOL_ID,
+            ClientId: CLIENT_ID,
+            AuthParameters: {
+                USERNAME: email,
+                PASSWORD: password,
+            },
+        });
+
+        const response = await client.send(command);
 
         return {
             statusCode: 200,
-            body: JSON.stringify({ message: 'Login success', email })
+            body: JSON.stringify({
+                message: 'Login successful',
+                idToken: response.AuthenticationResult?.IdToken,
+            }),
         };
-    } catch (err) {
-        console.error(err);
-        return { statusCode: 500, body: 'Internal Server Error' };
+    } catch (err: any) {
+        console.error('Login error:', err);
+        return {
+            statusCode: 401,
+            body: JSON.stringify({
+                message: 'Login failed',
+                error: err.message || 'Unknown error',
+            }),
+        };
     }
 };
